@@ -265,7 +265,9 @@ public:
   }
   // dummy read function for now
   // still underwork
-  void readSMSLOOP(void)
+  // for now can do basic job
+  // if there's message coming read it 
+  bool readSMS(void)
   {
     const __FlashStringHelper *_command = F("AT+CMGR=%s\r");
     char message_number[3];
@@ -289,7 +291,16 @@ public:
         break;
     }
     atResponse();
-    Serial.println(response);
+    // Serial.println(response);
+    return true;
+  }
+
+  bool doCommand(const char *command, void (*func)()){
+    if(isContain(command)){
+      func();
+      return true;
+    }
+    return false;
   }
 private:
   SoftwareSerial *_serial;
