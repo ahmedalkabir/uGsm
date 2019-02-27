@@ -121,7 +121,7 @@ public:
   bool atResponse(char *buffer, size_t bufferSize, unsigned long timeout)
   {
     // let's make sure, there's data to parse
-    // TODO: Add timout feature 
+    // TODO: Add timout feature
     while (true)
     {
       if (_serial->available() > 0)
@@ -241,8 +241,10 @@ public:
     clearBufferFromSerial();
     ATSendCommand(buffer);
     delay(500);
-    for(size_t i = 0; i < strlen(message) && length < 160; i++){
-      if(message[i] != '\r'){
+    for (size_t i = 0; i < strlen(message) && length < 160; i++)
+    {
+      if (message[i] != '\r')
+      {
         write(message[i]);
         length++;
       }
@@ -252,15 +254,43 @@ public:
     write(0x1A);
     write(0x0D);
     write(0x0A);
-    while(!isContain(_response)){
+    while (!isContain(_response))
+    {
       atResponse();
     }
-    if(isContain(_response))
+    if (isContain(_response))
       return true;
     else
       return false;
   }
-
+  // dummy read function for now
+  // still underwork
+  void readSMSLOOP(void)
+  {
+    const __FlashStringHelper *_command = F("AT+CMGR=%s\r");
+    char message_number[3];
+    // form of recivied sms notification
+    // is
+    // +CMTI: "SM",00
+    while (atResponse())
+    {
+      if (isContain("+CMTI:"))
+        break;
+    }
+    message_number[0] = response[12];
+    message_number[1] = response[13];
+    message_number[2] = '\0';
+    char buffer[13];
+    sprintf_P(buffer, (const char *)_command, message_number);
+    ATSendCommand(buffer);
+    while (atResponse())
+    {
+      if (isContain("+CMGR:"))
+        break;
+    }
+    atResponse();
+    Serial.println(response);
+  }
 private:
   SoftwareSerial *_serial;
   char response[203];

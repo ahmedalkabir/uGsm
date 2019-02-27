@@ -8,3 +8,4 @@ with gsm900A, it tested with Arduino NANO & Arduino Mega
 
 # TODO
 1. there's a lot to complete
+2. Create simple examples
