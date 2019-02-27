@@ -3,7 +3,7 @@ it's just little library to help my projects, as I looked up there's alot of lib
 with gsm900A, it tested with Arduino NANO & Arduino Mega
 
 # What Works Currently 
-1. you can make a phne call
+1. you can make a phone call
 2. and send message to specific destination
 
 # TODO
