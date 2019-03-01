@@ -246,6 +246,15 @@ bool uGsm::sendMessage(const char *destination, const char *message)
         return false;
 }
 
+bool uGsm::sendMessage(const __FlashStringHelper *destination, const __FlashStringHelper *message){
+    char buf_dest[strlen_PF((const char *)destination) + 1];
+    char buf_messages[strlen_PF((const char *)message) + 1];
+
+    strcpy_P(buf_dest, (const char *)destination);
+    strcpy_P(buf_messages, (const char *)buf_messages);
+    return sendMessage(buf_dest, buf_messages);
+}
+
 // dummy read function for now
 // still underwork
 // for now can do basic job
@@ -282,6 +291,14 @@ bool uGsm::doCommand(const char *command, void (*func)())
 {
     if (isContain(command))
     {
+        func();
+        return true;
+    }
+    return false;
+}
+
+bool uGsm::doCommand(const __FlashStringHelper *command, void (*func)()){
+    if(isContain(command)){
         func();
         return true;
     }

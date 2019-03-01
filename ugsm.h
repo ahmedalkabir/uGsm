@@ -50,10 +50,10 @@ public:
   void callNumber(const char *destination);
 
   // sendMessage: is going to send message to specific destination
-  // message it must not exceed 160 characters
+  // message it must not exceed 160 characters 
   // it's going return true in case message sent
   bool sendMessage(const char *destination, const char *message);
-
+  bool sendMessage(const __FlashStringHelper *destination, const __FlashStringHelper *message);
   // readSMS:
   // dummy read function for now
   // still underwork
@@ -61,9 +61,15 @@ public:
   // if there's message coming read it
   bool readSMS(void);
 
-
+  // doCommand: it will execute callback function when specific command occured
+  // you should use it when receiving messages like this
+  //  if(gsm.readSMS()){
+  //    gsm.doCommand(F("LIGHT1ON"), [](){
+  //      digitalWrite(13, HIGH);
+  //    });
+  //  }
   bool doCommand(const char *command, void (*func)());
-
+  bool doCommand(const __FlashStringHelper *command, void (*func)());
 private:
   SoftwareSerial *_serial;
   char response[203];
