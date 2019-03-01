@@ -5,7 +5,10 @@ with gsm900A, it tested with Arduino NANO & Arduino Mega
 # What Works Currently 
 1. you can make a phone call
 2. and send message to specific destination
+3. receving messages and execute the recevied commands
 
 # TODO
-1. there's a lot to complete
+1. add timeout to blocking functions 
 2. Create simple examples
+3. Add string readSMS() function to allow user read the message
+4. Add deleteALLSMS() & deleteSMS(int index) functions
