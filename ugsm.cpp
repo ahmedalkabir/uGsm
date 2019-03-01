@@ -251,7 +251,7 @@ bool uGsm::sendMessage(const __FlashStringHelper *destination, const __FlashStri
     char buf_messages[strlen_PF((const char *)message) + 1];
 
     strcpy_P(buf_dest, (const char *)destination);
-    strcpy_P(buf_messages, (const char *)buf_messages);
+    strcpy_P(buf_messages, (const char *)message);
     return sendMessage(buf_dest, buf_messages);
 }
 
