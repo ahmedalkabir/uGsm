@@ -8,7 +8,11 @@ SoftwareSerial serial_1(10, 11);
 // default speed it's 9600
 // in case you want to change to speed just add second parameter
 // uGsm gsm1(serial_1, 115200);
-uGsm gsm1(serial_1);
+// uGsm<SoftwareSerial> gsm1(serial_1);
+
+// for ArduinoMega in case SoftwareSerial doesn't work properly use built-in hardware serial communication
+// Serial1 ===> RX is 19 and TX is 18
+uGsm<HardwareSerial> gsm1(Serial1);
 
 void setup() {
   // put your setup code here, to run once:
