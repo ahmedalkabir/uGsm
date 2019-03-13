@@ -7,7 +7,7 @@ with gsm900A, it tested with Arduino NANO & Arduino Mega
 2. and send message to specific destination
 3. receving messages and execute the recevied commands
 
-# snippet One uGsm can do
+# snippet of What uGsm can do
 ```c++
   // readSMS is going to block the process 
   // and wait for incoming messages, if there's message
@@ -25,6 +25,7 @@ with gsm900A, it tested with Arduino NANO & Arduino Mega
     });
   }
 ```
+
 
 # TODO
 0. add event-driven approach to library.
