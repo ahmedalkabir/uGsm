@@ -2,6 +2,27 @@
 it's just little library to help my projects, as I looked up there's alot of libraries to work with, but some how it doesn't work perfect 
 with gsm900A, it tested with Arduino NANO & Arduino Mega
 
+# New Update 13-3-2019
+for some reasons, SoftwareSerial it will not work properly for some Arduino Mega boards, yours might work and other maybe it won't, I decided to add HardwareSerial Support, consequently the way of how to use uGsm has changed, look to example below.
+
+# example of how to define uGsm object
+```c++
+// create serial object and wrapper it around 
+// uGsm class do let it do works for you
+
+SoftwareSerial serial_1(10, 11);
+// default speed it's 9600
+// in case you want to change to speed just add second parameter
+// uGsm gsm1(serial_1, 115200);
+// uGsm<SoftwareSerial> gsm1(serial_1);
+
+// for ArduinoMega in case SoftwareSerial doesn't work properly use built-in hardware serial communication
+// Serial1 ===> RX is 19 and TX is 18
+uGsm<HardwareSerial> gsm1(Serial1);
+```
+
+other interface is still the same
+
 # What Works Currently 
 1. you can make a phone call
 2. and send message to specific destination
