@@ -1,493 +1,288 @@
 #ifndef UGSM_H_
 #define UGSM_H_
 
-// mini library to work with gsm900A specially
+// mini library to work with sim900a specially
 // created by Ahmed Alkabir
 // well, I've to consider to echo property to library for better stability
+// amm, let's disable echo
 #include <Arduino.h>
 #include <string.h>
 #include <stdint.h>
-#include <SoftwareSerial.h>
 
-template <typename T>
 class uGsm
 {
 public:
-  uGsm(T &serial, size_t speed = 9600)
-  {
-    _serialS = &serial;
-    _serialS->begin(speed);
-    response[0] = '\0';
-  }
+  uGsm(){}
+  void begin(Stream *_serial);
 
-  //AT: send AT Command to GSM900A
-  // if it's every thing ok it should return true, otherwise false
-  bool AT(void);
+  // to check if the arduino is connected to module
+  bool isPoweredUp(uint16_t time_out);
 
-  // ATSendCommand: send at command to gsm900a
-  // don't forget to add \r at the end of command
-  void ATSendCommand(const char *at);
-  void ATSendCommand(const __FlashStringHelper *at);
-  bool isConnected();
+  // to check if the module is registered to network
+  bool isRegistered(uint16_t time_out);
 
-  // atResponse: Get AT Response, this function is block call until timeout.
-  // note: timeout feature doesn't work for now, <<<< ADD IT >>>>
-  bool atResponse(char *buffer, size_t bufferSize, unsigned long timeout);
-  bool atResponse(unsigned long timeout = 50);
+  // to send message to specifc destenation
+  bool sendSMS(const char *destenation, const char *message);
+  bool sendSMS(const __FlashStringHelper *destenation, const __FlashStringHelper *message);
+  // return true if there's income message to read
+  bool messageToRead();
+  void readLastSMS(char *phone_number, char *received_message);
+  // void readSMS(char)
+  bool deleteSMS(uint8_t index);
+  bool deleteAllSMS();
+  void disableEcho();
+  void enableEcho();
 
-  // isResponse: it return true if expexted string occured
-  bool isResponse(const char *expected);
-  bool isResponse(const __FlashStringHelper *expected);
-
-  // isContain: if expected string existed in response from gsm900a it should return true, otherwise false
-  bool isContain(const char *expected);
-  bool isContain(const __FlashStringHelper *expected);
-
-  // isOK: it's just a wrapper around isResponse(F("OK"))
-  bool isOK(void);
-
-  // callNumber:
-  void callNumber(const char *destination);
-
-  // sendMessage: is going to send message to specific destination
-  // message it must not exceed 160 characters
-  // it's going return true in case message sent
-  bool sendMessage(const char *destination, const char *message);
-  bool sendMessage(const __FlashStringHelper *destination, const __FlashStringHelper *message);
-  // readSMS:
-  // dummy read function for now
-  // still underwork
-  // for now can do basic job
-  // if there's message coming read it
-  bool readSMS(void);
-
-  // doCommand: it will execute callback function when specific command occured
-  // you should use it when receiving messages like this
-  //  if(gsm.readSMS()){
-  //    gsm.doCommand(F("LIGHT1ON"), [](){
-  //      digitalWrite(13, HIGH);
-  //    });
-  //  }
-  bool doCommand(const char *command, void (*func)());
-  bool doCommand(const __FlashStringHelper *command, void (*func)());
+  void test_responed_function();
 
 private:
-  T *_serialS;
-  char response[203];
-
+  Stream *_serialGSM = nullptr;
+  char buffer[203];
+  char last_message_index[3];
   // private methods
-  int available();
-  // it's only for SoftwareSerial
-  bool isListening();
-  bool listen();
-
-  void flush();
-  size_t write(const char c);
-  size_t write(const char *str);
-  size_t write(const __FlashStringHelper *str);
-  int read();
-  size_t readBytes(char buffer[], size_t lenght);
-  size_t print(const char *str);
-  void clearBufferFromSerial(void);
+  void write_at_command(const char *cmd);
+  void write_at_command(const __FlashStringHelper *cmd);
+  void flush_the_serial_and_buffer();
+  bool wait_for_response(char *response, uint16_t time_out);
+  bool wait_for_response(const __FlashStringHelper *response, uint16_t time_out);
+  char* read_buffer();
+  bool is_contain_response(const char *response);
+  bool is_contain_response(const __FlashStringHelper *response);
 };
 
-// the implementation
-template <typename T>
-bool uGsm<T>::isConnected()
-{
-  if (AT())
-    return true;
-  else
-    return false;
-}
-
-template <typename T>
-int uGsm<T>::available(void)
-{
-  // if (_serialH)
-  //     return _seriaH->available();
-
-  if (_serialS)
-    return _serialS->available();
-  return -1;
-}
-
-template <typename T>
-bool uGsm<T>::isListening(void)
-{
-  // if (_serialH)
-  //     return _serialH->isListening();
-
-  if (_serialS)
-    return _serialS->isListening();
-  return false;
-}
-
-template <typename T>
-bool uGsm<T>::listen(void)
-{
-  if (_serialS)
-    return _serialS->listen();
-  return false;
-}
-
-// Specialization methods for HardwareSerial
-template <>
-bool uGsm<HardwareSerial>::isListening(void)
-{
-  return true;
-}
-
-template <>
-bool uGsm<HardwareSerial>::listen(void)
-{
-  return true;
-}
-
-template <typename T>
-void uGsm<T>::flush(void)
-{
-  // if (_serialH)
-  //     _serialH->flush();
-
-  if (_serialS)
-    _serialS->flush();
-}
-
-template <typename T>
-size_t uGsm<T>::write(const char c)
-{
-  // if (_serialH)
-  //     return _serialH->write(c);
-
-  if (_serialS)
-    return _serialS->write(c);
-  return 0;
-}
-
-template <typename T>
-size_t uGsm<T>::write(const char str[])
-{
-  // if (_serialH)
-  //     _serialH->write(str);
-
-  if (_serialS)
-    _serialS->write(str);
-  return 0;
-}
-
-template <typename T>
-size_t uGsm<T>::write(const __FlashStringHelper *str)
-{
-  char buffer[strlen_P((const char *)str) + 1];
-  strcpy_P(buffer, (const char *)str);
-  return write(buffer);
-}
-
-template <typename T>
-size_t uGsm<T>::readBytes(char buffer[], size_t length)
-{
-  // if (_serialH)
-  //     return _serialH->readBytes(buffer, length);
-
-  if (_serialS)
-    return _serialS->readBytes(buffer, length);
-  return 0;
-}
-
-// TODO: Complete this function
-// main purpose to clear buffer from the serial instance
-template <typename T>
-void uGsm<T>::clearBufferFromSerial(void)
-{
-  if (!isListening())
-    listen();
-
-  auto t = millis();
-  // if (_serialH)
-  // {
-  //     while (_serialH->available() == 0 && millis() - t < 50)
-  //         ;
-  //     if (_serialH->available() == 0)
-  //         return;
-  // }
-
-  if (_serialS)
-  {
-    while (_serialS->available() == 0 && millis() - t < 50)
-      ;
-    if (_serialS->available() == 0)
-      return;
-  }
-}
-
-// a wrapper around print method of SoftwareSerial & HardWareSerial objects
-template <typename T>
-size_t uGsm<T>::print(const char *str)
-{
-  // if (_serialH)
-  // {
-  //     return _serialH->print(str);
-  // }
-  if (_serialS)
-  {
-    return _serialS->print(str);
-  }
-  return -1;
-}
-
-// a wrapper around read method of SoftwareSerial & HardWareSerial objects
-template <typename T>
-int uGsm<T>::read()
-{
-  return _serialS->read();
-}
-// is going to send at command to gsm900a
-// and as I stated it won't turn back echo for now
-template <typename T>
-void uGsm<T>::ATSendCommand(const char *at)
-{
-  if (!isListening())
-    listen();
-
-  print(at);
-  // as echo is enabled as default mode
-  // so I guess, I have to deal with it
-}
-
-template <typename T>
-void uGsm<T>::ATSendCommand(const __FlashStringHelper *at)
-{
-  char buffer[strlen_PF((const char *)at) + 1];
-  strcpy_P(buffer, (const char *)at);
-  return ATSendCommand(buffer);
-}
-
-// Get AT Response, this function is block call until timeout.
-template <typename T>
-bool uGsm<T>::atResponse(char *buffer, size_t bufferSize, unsigned long timeout)
-{
-  // let's make sure, there's data to parse
-  // TODO: Add timout feature
-  while (true)
-  {
-    // if (_serialS->available() > 0)
-    //     break;
-    if (available() > 0)
-      break;
-  }
-
-  uint8_t i = 0;
-  while (true)
-  {
-    while (available() > 0)
-    {
-      buffer[i++] = read();
-      if (i >= 2)
-      {
-        if (buffer[i - 2] == '\r' && buffer[i - 1] == '\n')
-          break;
-      }
+// implementation of private methods
+char* uGsm::read_buffer(){
+  if(_serialGSM->available() > 0){
+    char ch;
+    char *ptr = buffer;
+    while(_serialGSM->available() > 0){
+      ch = _serialGSM->read();
+      *ptr++ = ch;
     }
-    if (i >= 2)
-    {
-      if (buffer[i - 2] == '\r' && buffer[i - 1] == '\n')
-      {
-        buffer[i - 2] = '\0';
-        if (strlen(buffer) > 0)
-          break;
-        else
-          i = 0;
-      }
-    }
+    *ptr = '\0';
+  } 
+  // let's make a few delay between command
+  // Serial.println(buffer);
+  delay(20);
+  return buffer;
+}
+
+void uGsm::write_at_command(const char *cmd){
+  flush_the_serial_and_buffer();
+  uint8_t cmd_len = strlen(cmd);
+  for(uint8_t i = 0; i < cmd_len; i++){
+    _serialGSM->write(cmd[i]);
   }
-  // wait before receiving the respond from
-  // the gsm900a
-  delay(5);
-  return true;
-}
-
-template <typename T>
-bool uGsm<T>::atResponse(unsigned long timeout = 50)
-{
-  return atResponse(response, sizeof(response), timeout);
-}
-
-template <typename T>
-bool uGsm<T>::isResponse(const char *expected)
-{
-  if (strcmp(response, expected) != 0)
-    return false;
-  return true;
-}
-
-template <typename T>
-bool uGsm<T>::isResponse(const __FlashStringHelper *expected)
-{
-  char buffer[strlen_PF((const char *)expected) + 1];
-  strcpy_P(buffer, (const char *)expected);
-  return isResponse(buffer);
-}
-
-template <typename T>
-bool uGsm<T>::isContain(const char *expected)
-{
-  if (strstr(response, expected) == NULL)
-    return false;
-  return true;
-}
-
-template <typename T>
-bool uGsm<T>::isContain(const __FlashStringHelper *expected)
-{
-  char buffer[strlen_PF((const char *)expected) + 1];
-  strcpy_P(buffer, (const char *)expected);
-  return isContain(buffer);
-}
-
-template <typename T>
-bool uGsm<T>::isOK(void)
-{
-  if (!(isResponse(F("OK")) || isResponse(F("OK\r"))))
-    return false;
-  if (available())
-    clearBufferFromSerial();
-  return true;
-}
-
-template <typename T>
-bool uGsm<T>::AT(void)
-{
-  const __FlashStringHelper *command = F("AT\r");
-
-  // send command to gsm
-  // TODO: do function for it -----> DONE
-  ATSendCommand(command);
-  while (true)
-  {
-    if (!atResponse())
-    {
-      break;
-    }
-    if (isOK())
-      return true;
-    else
-      return false;
-  }
-  return false;
-}
-
-template <typename T>
-void uGsm<T>::callNumber(const char *destination)
-{
-  const __FlashStringHelper *command = F("ATD%s;\r");
-  char buffer[8 + strlen(destination)];
-  sprintf_P(buffer, (const char *)command, destination);
-  ATSendCommand(buffer);
-}
-
-template <typename T>
-bool uGsm<T>::sendMessage(const char *destination, const char *message)
-{
-  // wait 200ms to send message
-  delay(200);
-  const __FlashStringHelper *_command = F("AT+CMGS=\"%s\"\r");
-  const __FlashStringHelper *_response = F("+CMGS: ");
-  uint8_t length = 0;
-  char buffer[12 + strlen(destination)];
-
-  sprintf_P(buffer, (const char *)_command, destination);
-  // let's clear buffer first
-  clearBufferFromSerial();
-  ATSendCommand(buffer);
   delay(500);
-  for (size_t i = 0; i < strlen(message) && length < 160; i++)
-  {
-    if (message[i] != '\r')
-    {
-      write(message[i]);
-      length++;
+}
+
+void uGsm::write_at_command(const __FlashStringHelper *cmd){
+  char cmdR[strlen_P(reinterpret_cast<const char *>(cmd)) + 1];
+  strcpy_P(cmdR, reinterpret_cast<const char *>(cmd));
+  write_at_command(cmdR);
+}
+
+bool uGsm::wait_for_response(char *response, uint16_t time_out = 1000){
+  uint16_t last_time = millis();
+  while(1){
+    const char *pBuffer = read_buffer();
+    // uint8_t lenResponse = strlen(response);
+    // uint8_t incrementalChar = 0;
+    // while(*pBuffer != '\0'){
+    //   (*pBuffer++ == response[incrementalChar]) ? incrementalChar++ : 0;
+    //   if(incrementalChar == lenResponse){
+    //     flush_the_serial_and_buffer();
+    //     return true;
+    //   }
+    // }
+
+    if(is_contain_response(response)){
+      flush_the_serial_and_buffer();
+      return true;
+    }
+
+    if(millis() - last_time > time_out){
+      flush_the_serial_and_buffer();
+      return false;
     }
   }
-  // let's sent message to destination
-  delay(100);
-  write(0x1A);
-  write(0x0D);
-  write(0x0A);
-  while (!isContain(_response))
-  {
-    atResponse();
-  }
-  if (isContain(_response))
-    return true;
-  else
+  return false;
+}
+
+bool uGsm::wait_for_response(const __FlashStringHelper *response, uint16_t time_out){
+  char responseR[strlen_P(reinterpret_cast<const char *>(response)) + 1];
+  strcpy_P(responseR, reinterpret_cast<const char *>(response));
+  return wait_for_response(responseR, time_out);
+}
+
+void uGsm::flush_the_serial_and_buffer(){
+  while(_serialGSM->available() > 0)
+    _serialGSM->read();
+  memset(buffer, '\0', 203);
+}
+
+bool uGsm::is_contain_response(const char *response){
+  if(strstr(buffer, response) == NULL)
     return false;
-}
-
-template <typename T>
-bool uGsm<T>::sendMessage(const __FlashStringHelper *destination, const __FlashStringHelper *message)
-{
-  char buf_dest[strlen_PF((const char *)destination) + 1];
-  char buf_messages[strlen_PF((const char *)message) + 1];
-
-  strcpy_P(buf_dest, (const char *)destination);
-  strcpy_P(buf_messages, (const char *)message);
-  return sendMessage(buf_dest, buf_messages);
-}
-
-// dummy read function for now
-// still underwork
-// for now can do basic job
-// if there's message coming read it
-template <typename T>
-bool uGsm<T>::readSMS(void)
-{
-  const __FlashStringHelper *_command = F("AT+CMGR=%s\r");
-  char message_number[3];
-  // form of recivied sms notification
-  // is
-  // +CMTI: "SM",00
-  while (atResponse())
-  {
-    if (isContain("+CMTI:"))
-      break;
-  }
-  message_number[0] = response[12];
-  message_number[1] = response[13];
-  message_number[2] = '\0';
-  char buffer[13];
-  sprintf_P(buffer, (const char *)_command, message_number);
-  ATSendCommand(buffer);
-  while (atResponse())
-  {
-    if (isContain("+CMGR:"))
-      break;
-  }
-  atResponse();
-  // Serial.println(response);
   return true;
 }
 
-template <typename T>
-bool uGsm<T>::doCommand(const char *command, void (*func)())
-{
-  if (isContain(command))
-  {
-    func();
-    return true;
+bool uGsm::is_contain_response(const __FlashStringHelper *response){
+  char responseR[strlen_P(reinterpret_cast<const char *>(response)) + 1];
+  strcpy_P(responseR, reinterpret_cast<const char *>(response));
+  return is_contain_response(responseR);
+}
+
+// implementation of public methods
+void uGsm::begin(Stream *_serial){
+  _serialGSM = _serial;
+  enableEcho();
+}
+
+void uGsm::disableEcho(){
+  write_at_command(F("ATE0\r"));
+  flush_the_serial_and_buffer();
+}
+
+void uGsm::enableEcho(){
+  write_at_command(F("ATE1\r"));
+  flush_the_serial_and_buffer();
+}
+
+bool uGsm::isPoweredUp(uint16_t time_out){
+  write_at_command(F("AT\r"));
+  return wait_for_response(F("OK"), time_out);
+}
+
+bool uGsm::isRegistered(uint16_t time_out){
+  write_at_command(F("AT+COPS?\r"));
+  return wait_for_response(F("+COPS: 0,0"), time_out);
+}
+
+bool uGsm::sendSMS(const char *destenation, const char *message){
+  // let's set text mode for sending message
+  flush_the_serial_and_buffer();
+  write_at_command(F("AT+CMGF=1\r"));
+  if(!wait_for_response(F("OK"), 3000))
+    return false;
+  delay(20);
+  // let's send message
+  char sms_destenation[20];
+  sprintf(sms_destenation, "AT+CMGS=\"%s\"\r", destenation);
+  write_at_command(sms_destenation);
+  delay(20);
+  if(wait_for_response(F(">"), 3000)){
+    // DEBUG
+    // Serial.println("DEBUG -- SEND MESSAGE");
+    // write message 
+    const char *pChar = message;
+    while(*pChar != '\0'){
+      _serialGSM->write(*pChar++);
+    }
+
+    // after that write end marker
+    _serialGSM->write((char)26);
+    delay(200);
+    flush_the_serial_and_buffer();
+    while(_serialGSM->available() == 0);
+    return wait_for_response(F("+CMG"), 5000);
+  }else{
+    return false;
+  }
+}
+
+bool uGsm::sendSMS(const __FlashStringHelper *destenation, const __FlashStringHelper *message){
+  char destenationR[strlen_P(reinterpret_cast<const char *>(destenation)) + 1];
+  char messageR[strlen_P(reinterpret_cast<const char *>(message)) + 1];
+
+  strcpy_P(destenationR, reinterpret_cast<const char *>(destenation));
+  strcpy_P(messageR, reinterpret_cast<const char *>(message));
+
+  return sendSMS(destenationR, messageR);
+}
+
+bool uGsm::messageToRead(){
+  if(_serialGSM->available() > 0){
+    const char *expected_repsonse = "+CMTI: \"SM\",";
+    const char *pBuffer = read_buffer();
+    uint8_t lenResponse = strlen(expected_repsonse);
+    uint8_t incrementalChar = 0;
+
+    char *pLastIndex = last_message_index;
+    while(*pBuffer != '\0'){
+      (*pBuffer++ == expected_repsonse[incrementalChar]) ? incrementalChar++ : 0;
+      if(incrementalChar == lenResponse){
+        // here i'm going to read the index of received message
+        for(uint8_t i=0; i < strlen(pBuffer); i++){
+          *pLastIndex++ = *pBuffer++;
+        }
+        *pLastIndex = '\0';
+        return true;
+      }
+    }
   }
   return false;
 }
 
-template <typename T>
-bool uGsm<T>::doCommand(const __FlashStringHelper *command, void (*func)())
-{
-  if (isContain(command))
-  {
-    func();
-    return true;
+void uGsm::readLastSMS(char *phone_number, char *received_message){
+  char command[12];
+  // uint16_t last_time = millis();
+  sprintf(command,"AT+CMGR=2\r", last_message_index);
+  flush_the_serial_and_buffer();
+  write_at_command(command);
+  // char *pBuffer = read_buffer();
+  // flush_the_serial_and_buffer();
+  if(_serialGSM->available() > 0){
+    char c;
+    while (_serialGSM->available() > 0)
+    {
+      /* code */
+      c = _serialGSM->read();
+      Serial.write(c);
+    }
+    
   }
-  return false;
+    if(_serialGSM->available() > 0){
+    char c;
+    while (_serialGSM->available() > 0)
+    {
+      /* code */
+      c = _serialGSM->read();
+      Serial.write(c);
+    }
+    
+  }
+  // Serial.println(pBuffer);
+  char *pPhone_number = phone_number;
+  char *pReceived_message = received_message;
+  bool phoneFetchedDone = false;
+  // while(*pBuffer != '\0'){
+  //   // char ch = *pBuffer++;
+  //   // start reading phone number
+  //   if(*pBuffer++ == ',' && !phoneFetchedDone){
+  //     // ignore "
+  //     *pBuffer++;
+  //     while(*pBuffer != '"'){
+  //       *pPhone_number++ = *pBuffer++;
+  //     }
+  //     *pPhone_number = '\0';
+  //     phoneFetchedDone = true;
+  //   }
+  //   // let's wait for <CR>
+  //   // if(*pBuffer == '\r'){
+  //   //   // ignore <LF>
+  //   //   *pBuffer++;
+  //   //   while(*pBuffer != '\r' || *pBuffer != '\n')
+  //   //     *pReceived_message++ = *pBuffer++;
+  //   //   *pReceived_message = '\0';
+  //   //   // stop the loop
+  //   //   break;
+  //   // }
+  // }
 }
 
+void uGsm::test_responed_function(){
+  write_at_command("AT+COPS?\r");
+  Serial.println(read_buffer());
+}
 #endif
