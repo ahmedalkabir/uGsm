@@ -25,8 +25,10 @@ public:
   // return true if there's income message to read
   bool messageToRead();
   void readLastSMS(char *phone_number, char *received_message);
-  // void readSMS(char)
-  bool deleteSMS(uint8_t index);
+  void readSMS(uint8_t index_m, char *phone_number, char *received_message);
+  void doCommand(const char *command, void (*callback)());
+  void doCommand(const __FlashStringHelper *command, void (*callback)());
+  bool deleteSMS(uint8_t index_m);
   bool deleteAllSMS();
   void disableEcho();
   void enableEcho();
@@ -225,58 +227,51 @@ bool uGsm::messageToRead(){
 void uGsm::readLastSMS(char *phone_number, char *received_message){
   char command[12];
   // uint16_t last_time = millis();
-  sprintf(command,"AT+CMGR=2\r", last_message_index);
+  sprintf(command,"AT+CMGR=%s\r", last_message_index);
   flush_the_serial_and_buffer();
   write_at_command(command);
-  // char *pBuffer = read_buffer();
+  char *pBuffer = read_buffer();
   // flush_the_serial_and_buffer();
-  if(_serialGSM->available() > 0){
-    char c;
-    while (_serialGSM->available() > 0)
-    {
-      /* code */
-      c = _serialGSM->read();
-      Serial.write(c);
-    }
-    
-  }
-    if(_serialGSM->available() > 0){
-    char c;
-    while (_serialGSM->available() > 0)
-    {
-      /* code */
-      c = _serialGSM->read();
-      Serial.write(c);
-    }
-    
-  }
   // Serial.println(pBuffer);
   char *pPhone_number = phone_number;
   char *pReceived_message = received_message;
   bool phoneFetchedDone = false;
-  // while(*pBuffer != '\0'){
-  //   // char ch = *pBuffer++;
-  //   // start reading phone number
-  //   if(*pBuffer++ == ',' && !phoneFetchedDone){
-  //     // ignore "
-  //     *pBuffer++;
-  //     while(*pBuffer != '"'){
-  //       *pPhone_number++ = *pBuffer++;
-  //     }
-  //     *pPhone_number = '\0';
-  //     phoneFetchedDone = true;
-  //   }
-  //   // let's wait for <CR>
-  //   // if(*pBuffer == '\r'){
-  //   //   // ignore <LF>
-  //   //   *pBuffer++;
-  //   //   while(*pBuffer != '\r' || *pBuffer != '\n')
-  //   //     *pReceived_message++ = *pBuffer++;
-  //   //   *pReceived_message = '\0';
-  //   //   // stop the loop
-  //   //   break;
-  //   // }
-  // }
+  while(*pBuffer != '\0'){
+    // char ch = *pBuffer++;
+    // start reading phone number
+    if(*pBuffer++ == ',' && !phoneFetchedDone){
+      // ignore "
+      *pBuffer++;
+      while(*pBuffer != '"'){
+        *pPhone_number++ = *pBuffer++;
+      }
+      *pPhone_number = '\0';
+      phoneFetchedDone = true;
+    }
+    // let's wait for <CR>
+    if(*pBuffer == '\r' && phoneFetchedDone){
+      // ignore <LF>
+      *pBuffer++;
+      *pBuffer++;
+      while(*pBuffer != '\0'){
+        // Serial.write(*pBuffer++);
+        *pReceived_message++ = *pBuffer++;
+        // break current loop
+        if(*pBuffer == '\r')
+          break;
+      }
+      // add the null character to state it as string literals 
+      *pReceived_message = '\0';
+      // after we got the contents of message we stop the loop 
+      return;
+      // *pBuffer++;
+      // while(*pBuffer != '\r' || *pBuffer != '\n')
+      //   *pReceived_message++ = *pBuffer++;
+      // *pReceived_message = '\0';
+      // // stop the loop
+      // break;
+    }
+  }
 }
 
 void uGsm::test_responed_function(){
