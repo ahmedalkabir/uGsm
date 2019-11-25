@@ -3,8 +3,6 @@
 
 // mini library to work with sim900a specially
 // created by Ahmed Alkabir
-// well, I've to consider to echo property to library for better stability
-// amm, let's disable echo
 #include <Arduino.h>
 #include <string.h>
 #include <stdint.h>
@@ -40,14 +38,14 @@ private:
   char buffer[203];
   char last_message_index[3];
   // private methods
-  void write_at_command(const char *cmd);
-  void write_at_command(const __FlashStringHelper *cmd);
+  inline void write_at_command(const char *cmd);
+  inline void write_at_command(const __FlashStringHelper *cmd);
   void flush_the_serial_and_buffer();
   bool wait_for_response(char *response, uint16_t time_out);
   bool wait_for_response(const __FlashStringHelper *response, uint16_t time_out);
   char* read_buffer();
-  bool is_contain_response(const char *response);
-  bool is_contain_response(const __FlashStringHelper *response);
+  inline bool is_contain_response(const char *response);
+  inline bool is_contain_response(const __FlashStringHelper *response);
 };
 
 // implementation of private methods

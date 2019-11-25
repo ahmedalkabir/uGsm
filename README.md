@@ -1,9 +1,12 @@
 # uGsm
-it's just little library to help my projects, as I looked up there's alot of libraries to work with, but some how it doesn't work perfect 
-with gsm900A, it tested with Arduino NANO & Arduino Mega
+it's just little library to help my projects, as I looked up there's alot of libraries to work with, but some how it doesn't do its work well
+with gsm900A.
 
-# New Update 13-3-2019
-for some reasons, SoftwareSerial it will not work properly for some Arduino Mega boards, yours might work and other maybe it won't, I decided to add HardwareSerial Support, consequently the way of how to use uGsm has changed, look to example below.
+# What Works Currently 
+1. you can make a phone call
+2. and send message to specific destination
+3. receving messages and execute the recevied commands
+
 
 # example of how to define uGsm object
 ```c++
@@ -23,10 +26,6 @@ uGsm<HardwareSerial> gsm1(Serial1);
 
 other interface is still the same
 
-# What Works Currently 
-1. you can make a phone call
-2. and send message to specific destination
-3. receving messages and execute the recevied commands
 
 # snippet of What uGsm can do
 ```c++
