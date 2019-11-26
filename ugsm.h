@@ -284,6 +284,7 @@ int uGsm::readSMS(uint8_t index_m, char *phone_number, char *received_message){
 
 void uGsm::doCommand(const char *cmd, void (*cb)()){
   // well, we're going to read last message as suppoesd to be a command to do something special
+  flush_the_serial_and_buffer();
   char cmd_at[10];
   uint8_t incN = 0;
   sprintf_P(cmd_at, PSTR("AT+CMGR=%s\r"), last_message_index);
@@ -291,7 +292,9 @@ void uGsm::doCommand(const char *cmd, void (*cb)()){
   char *pBuffer = read_buffer();
   char *cmd_msg;
   while(*pBuffer != '\0'){
-    if(*pBuffer++ == '\r' && incN++ == 2){
+    // something weird happens here, and I may need to reconsider 
+    // the implementation
+    if(*pBuffer++ == '\r' && incN++ == 3){
       *pBuffer++;
       cmd_msg = pBuffer;
       break;
@@ -309,6 +312,7 @@ void uGsm::doCommand(const char *cmd, void (*cb)()){
   }
   flush_the_serial_and_buffer();
   // now let's delete the current message to prevent from filling the storage of sms 
+  // deleteSMS(last_message_index);
 }
 
 void uGsm::doCommand(const __FlashStringHelper *cmd, void (*cb)()){
