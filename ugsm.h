@@ -31,12 +31,13 @@ public:
   // return 1 if readSMS read message successfully otherwise return 0, and return -1
   // for invalid input
   int readSMS(uint8_t index_m, char *phone_number, char *received_message);
+  // doCommand : this function is going execute callback function based 
+  // on received command and must be used inside if(object.messageToRead){}
   void doCommand(const char *cmd, void (*cb)());
   void doCommand(const __FlashStringHelper *cmd, void (*cb)());
   
-  //
   bool deleteSMS(uint8_t index_m);
-  //
+  // is used to delete all messages stored in sms
   bool deleteAllSMS();
 
   void disableEcho();
