@@ -33,8 +33,12 @@ public:
   int readSMS(uint8_t index_m, char *phone_number, char *received_message);
   void doCommand(const char *cmd, void (*cb)());
   void doCommand(const __FlashStringHelper *cmd, void (*cb)());
+  
+  //
   bool deleteSMS(uint8_t index_m);
+  //
   bool deleteAllSMS();
+
   void disableEcho();
   void enableEcho();
 
@@ -48,7 +52,7 @@ private:
   inline void write_at_command(const char *cmd);
   inline void write_at_command(const __FlashStringHelper *cmd);
   void flush_the_serial_and_buffer();
-  bool wait_for_response(char *rsp, uint16_t time_out);
+  bool wait_for_response(const char *rsp, uint16_t time_out);
   bool wait_for_response(const __FlashStringHelper *rsp, uint16_t time_out);
   char* read_buffer();
   inline bool is_contain_response(const char *rsp);
@@ -87,7 +91,7 @@ void uGsm::write_at_command(const __FlashStringHelper *cmd){
   write_at_command(cmdR);
 }
 
-bool uGsm::wait_for_response(char *response, uint16_t time_out = 1000){
+bool uGsm::wait_for_response(const char *response, uint16_t time_out = 1000){
   uint16_t last_time = millis();
   while(1){
     const char *pBuffer = read_buffer();
@@ -289,6 +293,11 @@ void uGsm::doCommand(const __FlashStringHelper *cmd, void (*cb)()){
   doCommand(cmd_d, cb);
 }
 
+
+bool uGsm::deleteAllSMS(){
+  write_at_command(F("AT+CMGD=0,4\r"));
+  return wait_for_response(F("OK"), 3000);
+}
 void uGsm::test_responed_function(){
   write_at_command("AT+COPS?\r");
   Serial.println(read_buffer());
