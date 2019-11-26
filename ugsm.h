@@ -286,10 +286,9 @@ void uGsm::doCommand(const char *cmd, void (*cb)()){
   // well, we're going to read last message as suppoesd to be a command to do something special
   char cmd_at[10];
   uint8_t incN = 0;
-  sprintf_P(cmd_at,PSTR("AT+CMGR=%d\r"), last_message_index);
+  sprintf_P(cmd_at, PSTR("AT+CMGR=%s\r"), last_message_index);
   write_at_command(cmd_at);
   char *pBuffer = read_buffer();
-  // Serial.println(pBuffer);
   char *cmd_msg;
   while(*pBuffer != '\0'){
     if(*pBuffer++ == '\r' && incN++ == 2){
