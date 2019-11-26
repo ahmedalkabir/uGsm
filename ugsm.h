@@ -22,11 +22,14 @@ public:
   // to send message to specifc destenation
   bool sendSMS(const char *dst, const char *msg);
   bool sendSMS(const __FlashStringHelper *dst, const __FlashStringHelper *msg);
+  
   // return true if there's income message to read
   bool messageToRead();
+  
   // return 1 if readSMS read message successfully otherwise return 0, and return -1
   // for invalid input
   int readLastSMS(char *phone_number, char *received_message);
+
   // TODO : prevent from entering unreasonable number
   // return 1 if readSMS read message successfully otherwise return 0, and return -1
   // for invalid input
@@ -37,6 +40,7 @@ public:
   void doCommand(const __FlashStringHelper *cmd, void (*cb)());
   
   bool deleteSMS(uint8_t index_m);
+  bool deleteSMS(const char *index_m);
   // is used to delete all messages stored in sms
   bool deleteAllSMS();
 
@@ -203,6 +207,7 @@ bool uGsm::sendSMS(const __FlashStringHelper *dst, const __FlashStringHelper *ms
 
 bool uGsm::messageToRead(){
   if(_serialGSM->available() > 0){
+    memset(last_message_index, '\0', 3);
     const char *expct_rsp = "+CMTI: \"SM\",";
     const char *pBuffer = read_buffer();
     uint8_t len_rsp = strlen(expct_rsp);
@@ -217,6 +222,8 @@ bool uGsm::messageToRead(){
           *pLastIndex++ = *pBuffer++;
         }
         *pLastIndex = '\0';
+        Serial.println(last_message_index);
+        flush_the_serial_and_buffer();
         return true;
       }
     }
@@ -277,28 +284,53 @@ int uGsm::readSMS(uint8_t index_m, char *phone_number, char *received_message){
 
 void uGsm::doCommand(const char *cmd, void (*cb)()){
   // well, we're going to read last message as suppoesd to be a command to do something special
-  // let's flush the serial buffer
-  flush_the_serial_and_buffer();
   char cmd_at[10];
-  sprintf_P(cmd_at, PSTR("AT+CMGR=%s\r"), last_message_index);
+  uint8_t incN = 0;
+  sprintf_P(cmd_at,PSTR("AT+CMGR=%d\r"), last_message_index);
   write_at_command(cmd_at);
-  if(wait_for_response(cmd, 500)){
+  char *pBuffer = read_buffer();
+  // Serial.println(pBuffer);
+  char *cmd_msg;
+  while(*pBuffer != '\0'){
+    if(*pBuffer++ == '\r' && incN++ == 2){
+      *pBuffer++;
+      cmd_msg = pBuffer;
+      break;
+    }
+  }
+  while(*pBuffer != '\0'){
+    if(*pBuffer++ == '\r'){
+      *--pBuffer = '\0';
+      break;
+    }
+  }
+  // compare command to received message and invoke callback incase are same
+  if(strcmp(cmd_msg, cmd) == 0){
     cb();
   }
+  flush_the_serial_and_buffer();
+  // now let's delete the current message to prevent from filling the storage of sms 
 }
 
 void uGsm::doCommand(const __FlashStringHelper *cmd, void (*cb)()){
   char cmd_d[strlen_P(reinterpret_cast<const char *>(cmd)) + 1];
   strcpy_P(cmd_d, reinterpret_cast<const char *>(cmd));
-
+  
   doCommand(cmd_d, cb);
 }
 
+bool uGsm::deleteSMS(const char *index_m){
+  char cmd[10];
+  sprintf_P(cmd, PSTR("AT+CMGD=%s\r"), index_m);
+  write_at_command(cmd);
+  return wait_for_response(F("OK"), 3000);
+}
 
 bool uGsm::deleteAllSMS(){
   write_at_command(F("AT+CMGD=0,4\r"));
   return wait_for_response(F("OK"), 3000);
 }
+
 void uGsm::test_responed_function(){
   write_at_command("AT+COPS?\r");
   Serial.println(read_buffer());
