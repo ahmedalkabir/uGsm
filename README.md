@@ -7,7 +7,17 @@ with gsm900A.
 2. and send message to specific destination
 3. receving messages and execute the recevied commands
 
+# Note Before Using Library
+well, there's something to consider when we receive the message the problem is with SoftwareSerial it has limited buffer of received data
+from the sim900a it's about 64 bytes which is not sufficient for receiving message so we need to modify the value by chaning it to 128 bytes 
 
+# How you change the size of received Buffer 
+it's simple just go to C:\Program Files (x86)\Arduino\hardware\arduino\avr\libraries\SoftwareSerial\src
+and open up SoftwareSerial.h and look for _SS_MAX_RX_BUFF 64 
+and replace 64 by 128 you can replace it with any value as long it won't exceed the ram size
+
+# Notes for Arduino Mega 
+I prefer to use hardware Serial in Arduino Mega as it has three hardware serials so it's efficient to use them better than SoftwareSerial, as a SoftwareSerial it has limite size of buffer so you have to change it by heading to C:\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino, open up HardwareSerial.h and look up for SERIAL_RX_BUFFER_SIZE 64, replace 64 by 128 
 # snippet of uGsm example
 ```c++
 #include <SoftwareSerial.h>
