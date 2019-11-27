@@ -272,15 +272,11 @@ int uGsm::readSMS(uint8_t index_m, char *phone_number, char **received_message)
   char c_index_m[3];
   char cmd[12];
   itoa(index_m, c_index_m, 10);
-  // uint16_t last_time = millis();
   sprintf_P(cmd, PSTR("AT+CMGR=%s\r"), c_index_m);
   flush_the_serial_and_buffer();
   write_at_command(cmd);
   char *pBuffer = read_buffer();
-  // flush_the_serial_and_buffer();
-  // Serial.println(pBuffer);
   char *pPhone_number = phone_number;
-  // char *pReceived_message = received_message;
   char *pReceived_message;
   bool phoneFetchedDone = false;
   while (*pBuffer != '\0')
@@ -307,14 +303,11 @@ int uGsm::readSMS(uint8_t index_m, char *phone_number, char **received_message)
       pReceived_message = pBuffer;
       while (*pBuffer != '\0')
       {
-        // Serial.write(*pBuffer++);
-        // *pReceived_message++ = *pBuffer++;
         // break current loop
         if (*pBuffer++ == '\r')
           break;
       }
       // add the null character to state it as string literals
-      // *pReceived_message = '\0';
       *--pBuffer = '\0';
       *received_message = pReceived_message;
       // Serial.println(*received_message);
