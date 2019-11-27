@@ -1,12 +1,9 @@
 #include <SoftwareSerial.h>
 #include <ugsm.h>
-
-// here we'r going to define our software uart streamer to 
-// use in uGsm library
 SoftwareSerial serialGSM(10, 11);
-// declare a uGsm Object
 uGsm gsmClient;
-
+char phone[13];
+char *message;
 
 void setup()
 {
@@ -17,7 +14,6 @@ void setup()
   pinMode(13, OUTPUT);
 
   gsmClient.begin(&serialGSM);
-
   Serial.println(F("START PROJECT"));
   Serial.println(F("Starting the GSM900A ....."));
 
@@ -34,22 +30,26 @@ void setup()
     Serial.println(F("YOUR SIM is not registered to the network"));
     return;
   }
-
   Serial.println(F("START RECEIVE COMMANDS"));
+  gsmClient.deleteAllSMS();
 }
 
 void loop()
 {
-
-  // we wait for message and execute it based on the 
-  // received message
   if (gsmClient.messageToRead())
   {
-    gsmClient.doCommand(F("TURN1ON"), []() -> void {
+    gsmClient.readLastSMS(phone, &message);
+    if (strcmp_P(message, PSTR("TURN1ON")) == 0)
+    {
       digitalWrite(13, HIGH);
-    });
-    gsmClient.doCommand(F("TURN1OFF"), []() -> void {
+      gsmClient.sendSMS(F("092XXXXXXX"), F("LIGHT 1 HAS TURNED ON"));
+      gsmClient.deleteAllSMS();
+    }
+    else if (strcmp_P(message, PSTR("TURN1OFF")) == 0)
+    {
       digitalWrite(13, LOW);
-    });
+      gsmClient.sendSMS(F("092XXXXXXX"), F("LIGHT 1 HAS TURNED OFF"));
+      gsmClient.deleteAllSMS();
+    }
   }
 }

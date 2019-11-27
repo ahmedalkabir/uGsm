@@ -20,15 +20,11 @@ and replace 64 by 128 you can replace it with any value as long it won't exceed 
 I prefer to use hardware Serial in Arduino Mega as it has three hardware serials so it's efficient to use them better than SoftwareSerial, as a SoftwareSerial it has limite size of buffer so you have to change it by heading to C:\Program Files (x86)\Arduino\hardware\arduino\avr\cores\arduino, open up HardwareSerial.h and look up for SERIAL_RX_BUFFER_SIZE 64, replace 64 by 128 
 # snippet of uGsm example
 ```c++
-#include <SoftwareSerial.h>
 #include <ugsm.h>
-
-// here we'r going to define our software uart streamer to 
-// use in uGsm library
 SoftwareSerial serialGSM(10, 11);
-// declare a uGsm Object
 uGsm gsmClient;
-
+char phone[13];
+char *message;
 
 void setup()
 {
@@ -39,7 +35,6 @@ void setup()
   pinMode(13, OUTPUT);
 
   gsmClient.begin(&serialGSM);
-
   Serial.println(F("START PROJECT"));
   Serial.println(F("Starting the GSM900A ....."));
 
@@ -56,29 +51,27 @@ void setup()
     Serial.println(F("YOUR SIM is not registered to the network"));
     return;
   }
-
   Serial.println(F("START RECEIVE COMMANDS"));
+  gsmClient.deleteAllSMS();
 }
 
 void loop()
 {
-
-  // we wait for message and execute it based on the 
-  // received message
   if (gsmClient.messageToRead())
   {
-    gsmClient.doCommand(F("TURN1ON"), []() -> void {
-      Serial.println("ON1");
-    });
-    gsmClient.doCommand(F("TURN1OFF"), []() -> void {
-      Serial.println("OFF1");
-    });
-    gsmClient.doCommand(F("TURN2ON"), []() -> void {
-      Serial.println("ON2");
-    });
-    gsmClient.doCommand(F("TURN2OFF"), []() -> void {
-      Serial.println("OFF2");
-    });
+    gsmClient.readLastSMS(phone, &message);
+    if (strcmp_P(message, PSTR("TURN1ON")) == 0)
+    {
+      digitalWrite(13, HIGH);
+      gsmClient.sendSMS(F("092XXXXXXX"), F("LIGHT 1 HAS TURNED ON"));
+      gsmClient.deleteAllSMS();
+    }
+    else if (strcmp_P(message, PSTR("TURN1OFF")) == 0)
+    {
+      digitalWrite(13, LOW);
+      gsmClient.sendSMS(F("092XXXXXXX"), F("LIGHT 1 HAS TURNED OFF"));
+      gsmClient.deleteAllSMS();
+    }
   }
 }
 ```
