@@ -40,7 +40,6 @@ public:
   void doCommand(const __FlashStringHelper *cmd, void (*cb)());
 
   bool deleteSMS(uint8_t index_m);
-  bool deleteSMS(const char *index_m);
   // is used to delete all messages stored in sms
   bool deleteAllSMS();
 
@@ -367,10 +366,10 @@ void uGsm::doCommand(const char *cmd, void (*cb)())
   if (strcmp(cmd_msg, cmd) == 0)
   {
     cb();
+    // now let's delete the current message to prevent from filling the storage of sms
+    deleteSMS(atoi(last_message_index));
   }
   flush_the_serial_and_buffer();
-  // now let's delete the current message to prevent from filling the storage of sms
-  // deleteSMS(last_message_index);
 }
 
 void uGsm::doCommand(const __FlashStringHelper *cmd, void (*cb)())
@@ -381,12 +380,12 @@ void uGsm::doCommand(const __FlashStringHelper *cmd, void (*cb)())
   doCommand(cmd_d, cb);
 }
 
-bool uGsm::deleteSMS(const char *index_m)
+bool uGsm::deleteSMS(uint8_t index_m)
 {
   char cmd[10];
-  sprintf_P(cmd, PSTR("AT+CMGD=%s\r"), index_m);
+  sprintf_P(cmd, PSTR("AT+CMGD=%d\r"), index_m);
   write_at_command(cmd);
-  return wait_for_response(F("OK"), 3000);
+  return wait_for_response(F("OK"), 300);
 }
 
 bool uGsm::deleteAllSMS()
