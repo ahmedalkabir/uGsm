@@ -11,6 +11,7 @@ class uGsm
 {
 public:
   uGsm() {}
+  // to start a project by assign a serial object
   void begin(Stream *_serial);
 
   // to check if the arduino is connected to module
@@ -34,19 +35,23 @@ public:
   // return 1 if readSMS read message successfully otherwise return 0, and return -1
   // for invalid input
   int readSMS(uint8_t index_m, char *phone_number, char *received_message);
+
   // doCommand : this function is going execute callback function based
   // on received command and must be used inside if(object.messageToRead){}
   void doCommand(const char *cmd, void (*cb)());
   void doCommand(const __FlashStringHelper *cmd, void (*cb)());
 
+  // delteSMS : delete the message by specific index
   bool deleteSMS(uint8_t index_m);
+
   // is used to delete all messages stored in sms
   bool deleteAllSMS();
 
+  // it's unuseful function and might move it to private
+  // to disable Echo
   void disableEcho();
+  // to enable Echo
   void enableEcho();
-
-  void test_responed_function();
 
 private:
   Stream *_serialGSM = nullptr;
@@ -360,8 +365,6 @@ void uGsm::doCommand(const char *cmd, void (*cb)())
     }
   }
 
-  // Serial.println(cmd_msg);
-  // Serial.print(pBuffer);
   // compare command to received message and invoke callback incase are same
   if (strcmp(cmd_msg, cmd) == 0)
   {
@@ -394,9 +397,4 @@ bool uGsm::deleteAllSMS()
   return wait_for_response(F("OK"), 3000);
 }
 
-void uGsm::test_responed_function()
-{
-  write_at_command("AT+COPS?\r");
-  Serial.println(read_buffer());
-}
 #endif
