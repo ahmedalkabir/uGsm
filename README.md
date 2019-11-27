@@ -1,6 +1,6 @@
 # uGsm
 it's just little library to help my projects, as I looked up there's alot of libraries to work with, but some how it doesn't do its work well
-with gsm900A.
+with sim900a.
 
 # What Works Currently 
 1. you can make a phone call
