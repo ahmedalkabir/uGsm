@@ -85,4 +85,4 @@ void loop()
 
 
 # TODO
-1. a lot of things to do, but currently can do basic things
+1. a lot of things to do
