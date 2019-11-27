@@ -235,27 +235,29 @@ bool uGsm::messageToRead()
 {
   if (_serialGSM->available() > 0)
   {
-    memset(last_message_index, '\0', 3);
+    char *pBuffer = read_buffer();
     const char *expct_rsp = "+CMTI: \"SM\",";
-    const char *pBuffer = read_buffer();
-    uint8_t len_rsp = strlen(expct_rsp);
-    uint8_t incrChar = 0;
 
-    char *pLastIndex = last_message_index;
-    while (*pBuffer != '\0')
+    if (strstr_P(pBuffer, expct_rsp) != NULL)
     {
-      (*pBuffer++ == expct_rsp[incrChar]) ? incrChar++ : 0;
-      if (incrChar == len_rsp)
+      uint8_t len_rsp = strlen(expct_rsp);
+      uint8_t incrChar = 0;
+      char *pLastIndex = last_message_index;
+      while (*pBuffer != '\0')
       {
-        // here i'm going to read the index of received message
-        for (uint8_t i = 0; i < strlen(pBuffer); i++)
+        (*pBuffer++ == expct_rsp[incrChar]) ? incrChar++ : 0;
+        if (incrChar == len_rsp)
         {
-          *pLastIndex++ = *pBuffer++;
+          // here i'm going to read the index of received message
+          for (uint8_t i = 0; i < strlen(pBuffer); i++)
+          {
+            *pLastIndex++ = *pBuffer++;
+          }
+          *pLastIndex = '\0';
+          Serial.println(last_message_index);
+          flush_the_serial_and_buffer();
+          return true;
         }
-        *pLastIndex = '\0';
-        Serial.println(last_message_index);
-        flush_the_serial_and_buffer();
-        return true;
       }
     }
   }
@@ -336,10 +338,13 @@ void uGsm::doCommand(const char *cmd, void (*cb)())
     // the implementation
     if (*pBuffer++ == '\r' && incN++ == 2)
     {
-      incN=1;
+      incN = 1;
       *pBuffer++;
-      while(*pBuffer != '\0'){
-        if(*pBuffer++ == '"' && incN++ == 8){
+      // Serial.print(pBuffer);
+      while (*pBuffer != '\0')
+      {
+        if (*pBuffer++ == '"' && incN++ == 8)
+        {
           *pBuffer++;
           *pBuffer++;
           cmd_msg = pBuffer;
