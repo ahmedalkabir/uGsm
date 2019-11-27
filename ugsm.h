@@ -237,8 +237,7 @@ bool uGsm::messageToRead()
   {
     char *pBuffer = read_buffer();
     const char *expct_rsp = "+CMTI: \"SM\",";
-
-    if (strstr_P(pBuffer, expct_rsp) != NULL)
+    if (strstr(pBuffer, expct_rsp) != NULL)
     {
       uint8_t len_rsp = strlen(expct_rsp);
       uint8_t incrChar = 0;
@@ -254,7 +253,7 @@ bool uGsm::messageToRead()
             *pLastIndex++ = *pBuffer++;
           }
           *pLastIndex = '\0';
-          Serial.println(last_message_index);
+          // Serial.println(last_message_index);
           flush_the_serial_and_buffer();
           return true;
         }
