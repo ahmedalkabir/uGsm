@@ -155,6 +155,8 @@ void uGsm::begin(Stream *_serial)
 {
   _serialGSM = _serial;
   enableEcho();
+  // set text mode for sms
+  write_at_command(F("AT+CMGF=1\r"));
 }
 
 void uGsm::disableEcho()
@@ -238,25 +240,34 @@ bool uGsm::messageToRead()
     const char *expct_rsp = "+CMTI: \"SM\",";
     if (strstr(pBuffer, expct_rsp) != NULL)
     {
-      uint8_t len_rsp = strlen(expct_rsp);
-      uint8_t incrChar = 0;
-      char *pLastIndex = last_message_index;
-      while (*pBuffer != '\0')
-      {
-        (*pBuffer++ == expct_rsp[incrChar]) ? incrChar++ : 0;
-        if (incrChar == len_rsp)
-        {
-          // here i'm going to read the index of received message
-          for (uint8_t i = 0; i < strlen(pBuffer); i++)
-          {
-            *pLastIndex++ = *pBuffer++;
-          }
-          *pLastIndex = '\0';
-          // Serial.println(last_message_index);
-          flush_the_serial_and_buffer();
+      // new implementation for messageToRead - 24-10-2019 by Ahmed Alkabir
+      char *found;
+      for(uint8_t i=0; (found = strsep(&pBuffer, ",")) != NULL; i++){
+        if(i==1){
+          strncpy(last_message_index, found, strlen(found)-2);
           return true;
         }
       }
+      // look for my funcking dump implementation
+      // uint8_t len_rsp = strlen(expct_rsp);
+      // uint8_t incrChar = 0;
+      // char *pLastIndex = last_message_index;
+      // while (*pBuffer != '\0')
+      // {
+      //   (*pBuffer++ == expct_rsp[incrChar]) ? incrChar++ : 0;
+      //   if (incrChar == len_rsp)
+      //   {
+      //     // here i'm going to read the index of received message
+      //     for (uint8_t i = 0; i < strlen(pBuffer); i++)
+      //     {
+      //       *pLastIndex++ = *pBuffer++;
+      //     }
+      //     *pLastIndex = '\0';
+      //     // Serial.println(last_message_index);
+      //     flush_the_serial_and_buffer();
+      //     return true;
+      //   }
+      // }
     }
   }
   return false;
