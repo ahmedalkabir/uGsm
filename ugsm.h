@@ -8,6 +8,9 @@
 #include <string.h>
 #include <stdint.h>
 
+// TODO: add feature to check of version of module
+
+#define BUFFER_SIZE 203
 
 template<typename T>
 class uGsm
@@ -74,7 +77,7 @@ public:
 
 private:
   Stream *_serialGSM = nullptr;
-  char buffer[203];
+  char buffer[BUFFER_SIZE];
   char last_message_index[3];
   // private methods
   inline void write_at_command(const char *cmd);
@@ -282,7 +285,7 @@ typename enable_if<is_sim900a<F>::value, bool>::type uGsm<T>::messageToRead()
     const char *expct_rsp = "+CMTI: \"SM\",";
     if (strstr(pBuffer, expct_rsp) != NULL)
     {
-      // new implementation for messageToRead - 24-10-2019 by Ahmed Alkabir
+      // new implementation for messageToRead - 24-12-2019 by Ahmed Alkabir
       char *found;
       for(uint8_t i=0; (found = strsep(&pBuffer, ",")) != NULL; i++){
         if(i==1){
@@ -319,6 +322,24 @@ template<typename T>
 template<typename F>
 typename enable_if<is_sim900<F>::value, bool>::type uGsm<T>::messageToRead()
 {
+  // well, so far I know sim900 show detail of message as soon as received it
+  // so we gonna save the detail of message to buffer
+  if (_serialGSM->available())
+  {
+    // wait until we recieve all the buffer
+    // I might change the value
+    delay(100);
+    // so we saved the message to buffer
+    // how someone can read the disred message
+    // just by calling readLastSMS method of SIM900
+    char *p = buffer;
+    while (_serialGSM->available())
+    {
+      *p++ = _serialGSM->read();
+    }
+    *p = '\0';
+    return true;
+  }
   return false;
 }
 
@@ -328,7 +349,6 @@ typename enable_if<is_sim800l<F>::value, bool>::type uGsm<T>::messageToRead()
 {
   return false;
 }
-
 
 template<typename T>
 template<typename F>
@@ -341,7 +361,19 @@ template<typename T>
 template<typename F>
 typename enable_if<is_sim900<F>::value, int>::type uGsm<T>::readLastSMS(char *phone_number, char **received_message)
 {
-
+  // so here we are going to parse the sms message
+  char *pBuffer = buffer;
+  char *found;
+  for(uint8_t i=0; (found = strsep(&pBuffer, "\n")) != NULL; i++){
+    // if(i==1){
+    //   strncpy(last_message_index, found, strlen(found)-2);
+    //   return true;
+    // }
+    if(i==2){
+      *received_message = found;
+      return 1;
+    }
+  }
 }
 
 template<typename T>
@@ -351,6 +383,7 @@ typename enable_if<is_sim800l<F>::value, int>::type uGsm<T>::readLastSMS(char *p
 
 }
 
+// I need to reconsider the implementation
 template<typename T>
 int uGsm<T>::readSMS(uint8_t index_m, char *phone_number, char **received_message)
 {
