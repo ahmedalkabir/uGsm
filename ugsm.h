@@ -4,9 +4,12 @@
 // mini library to work with sim900a specially
 // created by Ahmed Alkabir
 #include <Arduino.h>
+#include <utility_gsm.hpp>
 #include <string.h>
 #include <stdint.h>
 
+
+template<typename T>
 class uGsm
 {
 public:
@@ -25,11 +28,32 @@ public:
   bool sendSMS(const __FlashStringHelper *dst, const __FlashStringHelper *msg);
 
   // return true if there's income message to read
-  bool messageToRead();
+  // implementation of sim900a
+  template<typename F = T>
+  typename enable_if<is_sim900a<F>::value, bool>::type messageToRead();
 
+  // implementation of sim900
+  template<typename F = T>
+  typename enable_if<is_sim900<F>::value, bool>::type messageToRead();
+
+  // implementation of sim900
+  template<typename F = T>
+  typename enable_if<is_sim800l<F>::value, bool>::type messageToRead();
+
+  // implementation of sim800L
   // return 1 if readSMS read message successfully otherwise return 0, and return -1
   // for invalid input
-  int readLastSMS(char *phone_number, char **received_message);
+  template<typename F = T>
+  typename enable_if<is_sim900a<F>::value, int>::type 
+  readLastSMS(char *phone_number, char **received_message);
+
+  template<typename F = T>
+  typename enable_if<is_sim900<F>::value, int>::type 
+  readLastSMS(char *phone_number, char **received_message);
+
+  template<typename F = T>
+  typename enable_if<is_sim800l<F>::value, int>::type
+  readLastSMS(char *phone_number, char **received_message);
 
   // TODO : prevent from entering unreasonable number
   // return 1 if readSMS read message successfully otherwise return 0, and return -1
@@ -64,7 +88,8 @@ private:
 };
 
 // implementation of private methods
-char *uGsm::read_buffer()
+template<typename T>
+char *uGsm<T>::read_buffer()
 {
   if (_serialGSM->available() > 0)
   {
@@ -83,7 +108,8 @@ char *uGsm::read_buffer()
   return buffer;
 }
 
-void uGsm::write_at_command(const char *cmd)
+template<typename T>
+void uGsm<T>::write_at_command(const char *cmd)
 {
   flush_the_serial_and_buffer();
   uint8_t cmd_len = strlen(cmd);
@@ -94,14 +120,16 @@ void uGsm::write_at_command(const char *cmd)
   delay(500);
 }
 
-void uGsm::write_at_command(const __FlashStringHelper *cmd)
+template<typename T>
+void uGsm<T>::write_at_command(const __FlashStringHelper *cmd)
 {
   char cmdR[strlen_P(reinterpret_cast<const char *>(cmd)) + 1];
   strcpy_P(cmdR, reinterpret_cast<const char *>(cmd));
   write_at_command(cmdR);
 }
 
-bool uGsm::wait_for_response(const char *response, uint16_t time_out = 1000)
+template<typename T>
+bool uGsm<T>::wait_for_response(const char *response, uint16_t time_out = 1000)
 {
   uint16_t last_time = millis();
   while (1)
@@ -122,28 +150,32 @@ bool uGsm::wait_for_response(const char *response, uint16_t time_out = 1000)
   return false;
 }
 
-bool uGsm::wait_for_response(const __FlashStringHelper *response, uint16_t time_out)
+template<typename T>
+bool uGsm<T>::wait_for_response(const __FlashStringHelper *response, uint16_t time_out)
 {
   char responseR[strlen_P(reinterpret_cast<const char *>(response)) + 1];
   strcpy_P(responseR, reinterpret_cast<const char *>(response));
   return wait_for_response(responseR, time_out);
 }
 
-void uGsm::flush_the_serial_and_buffer()
+template<typename T>
+void uGsm<T>::flush_the_serial_and_buffer()
 {
   while (_serialGSM->available() > 0)
     _serialGSM->read();
   memset(buffer, '\0', 203);
 }
 
-bool uGsm::is_contain_response(const char *rsp)
+template<typename T>
+bool uGsm<T>::is_contain_response(const char *rsp)
 {
   if (strstr(buffer, rsp) == NULL)
     return false;
   return true;
 }
 
-bool uGsm::is_contain_response(const __FlashStringHelper *rsp)
+template<typename T>
+bool uGsm<T>::is_contain_response(const __FlashStringHelper *rsp)
 {
   char rsp_r[strlen_P(reinterpret_cast<const char *>(rsp)) + 1];
   strcpy_P(rsp_r, reinterpret_cast<const char *>(rsp));
@@ -151,7 +183,8 @@ bool uGsm::is_contain_response(const __FlashStringHelper *rsp)
 }
 
 // implementation of public methods
-void uGsm::begin(Stream *_serial)
+template<typename T>
+void uGsm<T>::begin(Stream *_serial)
 {
   _serialGSM = _serial;
   enableEcho();
@@ -159,31 +192,36 @@ void uGsm::begin(Stream *_serial)
   write_at_command(F("AT+CMGF=1\r"));
 }
 
-void uGsm::disableEcho()
+template<typename T>
+void uGsm<T>::disableEcho()
 {
   write_at_command(F("ATE0\r"));
   flush_the_serial_and_buffer();
 }
 
-void uGsm::enableEcho()
+template<typename T>
+void uGsm<T>::enableEcho()
 {
   write_at_command(F("ATE1\r"));
   flush_the_serial_and_buffer();
 }
 
-bool uGsm::isPoweredUp(uint16_t time_out)
+template<typename T>
+bool uGsm<T>::isPoweredUp(uint16_t time_out)
 {
   write_at_command(F("AT\r"));
   return wait_for_response(F("OK"), time_out);
 }
 
-bool uGsm::isRegistered(uint16_t time_out)
+template<typename T>
+bool uGsm<T>::isRegistered(uint16_t time_out)
 {
   write_at_command(F("AT+COPS?\r"));
   return wait_for_response(F("+COPS: 0,0"), time_out);
 }
 
-bool uGsm::sendSMS(const char *dst, const char *msg)
+template<typename T>
+bool uGsm<T>::sendSMS(const char *dst, const char *msg)
 {
   // let's set text mode for sending message
   flush_the_serial_and_buffer();
@@ -221,7 +259,8 @@ bool uGsm::sendSMS(const char *dst, const char *msg)
   }
 }
 
-bool uGsm::sendSMS(const __FlashStringHelper *dst, const __FlashStringHelper *msg)
+template<typename T>
+bool uGsm<T>::sendSMS(const __FlashStringHelper *dst, const __FlashStringHelper *msg)
 {
   char dst_r[strlen_P(reinterpret_cast<const char *>(dst)) + 1];
   char msg_r[strlen_P(reinterpret_cast<const char *>(msg)) + 1];
@@ -232,7 +271,10 @@ bool uGsm::sendSMS(const __FlashStringHelper *dst, const __FlashStringHelper *ms
   return sendSMS(dst_r, msg_r);
 }
 
-bool uGsm::messageToRead()
+// implementation of sim900a
+template<typename T>
+template<typename F>
+typename enable_if<is_sim900a<F>::value, bool>::type uGsm<T>::messageToRead()
 {
   if (_serialGSM->available() > 0)
   {
@@ -273,12 +315,44 @@ bool uGsm::messageToRead()
   return false;
 }
 
-int uGsm::readLastSMS(char *phone_number, char **received_message)
+template<typename T>
+template<typename F>
+typename enable_if<is_sim900<F>::value, bool>::type uGsm<T>::messageToRead()
+{
+  return false;
+}
+
+template<typename T>
+template<typename F>
+typename enable_if<is_sim800l<F>::value, bool>::type uGsm<T>::messageToRead()
+{
+  return false;
+}
+
+
+template<typename T>
+template<typename F>
+typename enable_if<is_sim900a<F>::value, int>::type uGsm<T>::readLastSMS(char *phone_number, char **received_message)
 {
   return readSMS(atoi(last_message_index), phone_number, received_message);
 }
 
-int uGsm::readSMS(uint8_t index_m, char *phone_number, char **received_message)
+template<typename T>
+template<typename F>
+typename enable_if<is_sim900<F>::value, int>::type uGsm<T>::readLastSMS(char *phone_number, char **received_message)
+{
+
+}
+
+template<typename T>
+template<typename F>
+typename enable_if<is_sim800l<F>::value, int>::type uGsm<T>::readLastSMS(char *phone_number, char **received_message)
+{
+
+}
+
+template<typename T>
+int uGsm<T>::readSMS(uint8_t index_m, char *phone_number, char **received_message)
 {
   char c_index_m[3];
   char cmd[12];
@@ -329,7 +403,8 @@ int uGsm::readSMS(uint8_t index_m, char *phone_number, char **received_message)
   return 0;
 }
 
-bool uGsm::deleteSMS(uint8_t index_m)
+template<typename T>
+bool uGsm<T>::deleteSMS(uint8_t index_m)
 {
   char cmd[10];
   sprintf_P(cmd, PSTR("AT+CMGD=%d\r"), index_m);
@@ -337,7 +412,8 @@ bool uGsm::deleteSMS(uint8_t index_m)
   return wait_for_response(F("OK"), 300);
 }
 
-bool uGsm::deleteAllSMS()
+template<typename T>
+bool uGsm<T>::deleteAllSMS()
 {
   write_at_command(F("AT+CMGD=0,4\r"));
   return wait_for_response(F("OK"), 3000);
