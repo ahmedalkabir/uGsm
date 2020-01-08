@@ -52,7 +52,7 @@ public:
 
   template<typename F = T>
   typename enable_if<is_sim900<F>::value, int>::type 
-  readLastSMS(char *phone_number, char **received_message);
+  readLastSMS(char **phone_number, char **received_message);
 
   template<typename F = T>
   typename enable_if<is_sim800l<F>::value, int>::type
@@ -359,17 +359,24 @@ typename enable_if<is_sim900a<F>::value, int>::type uGsm<T>::readLastSMS(char *p
 
 template<typename T>
 template<typename F>
-typename enable_if<is_sim900<F>::value, int>::type uGsm<T>::readLastSMS(char *phone_number, char **received_message)
+typename enable_if<is_sim900<F>::value, int>::type uGsm<T>::readLastSMS(char **phone_number, char **received_message)
 {
   // so here we are going to parse the sms message
   char *pBuffer = buffer;
   char *found;
   for(uint8_t i=0; (found = strsep(&pBuffer, "\n")) != NULL; i++){
-    // if(i==1){
-    //   strncpy(last_message_index, found, strlen(found)-2);
-    //   return true;
-    // }
+    // part of parsing phone number
+    if(i==1){
+      char *phoneFound;
+      for(uint8_t z = 0; (phoneFound = strsep(&found, "\"")) != NULL; z++){
+        if(z == 1){
+          *phone_number = phoneFound;
+        }
+      }
+    }
+    // now let's get the message
     if(i==2){
+      memset((found + strlen(found)-1), '\0', 1);
       *received_message = found;
       return 1;
     }
